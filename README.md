@@ -1,6 +1,6 @@
 # Trustpay Python
 
-Simple API client for the [Trustpay](https://www.trustpay.eu/) service.
+Simple API client for the [Payop](https://payop.com/) service.
 
 ## Usage
 
