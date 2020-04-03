@@ -1,16 +1,20 @@
 import dataclasses
+import logging
 from hashlib import sha256
 import json
 from http import HTTPStatus
 
 import requests
 
-from . import PaymentException, Language
-from .interfaces import Invoice, InvoiceResponse
+from . import PayopApiException, Language, PayopValidationException
+from .interfaces import (Invoice, InvoiceResponse, CallbackResponse, CallbackInvoice,
+                         CallbackTransaction, CallbackOrder, CallbackError)
 
 DEFAULT_BASE_API_URL = 'https://payop.com'
 CHECKOUT_PAGE = "https://payop.com/{locale}/payment/invoice-preprocessing/{invoice_id}"
 CREDIT_CARD_PAYMENT_METHOD_ID = 381
+
+logger = logging.getLogger(__name__)
 
 
 class Payop:
@@ -42,7 +46,7 @@ class Payop:
         r = requests.post(self._generate_url(endpoint), headers=headers, json=data)
         print(r.text)
         if r.status_code != HTTPStatus.OK:
-            raise PaymentException(
+            raise PayopApiException(
                 'Payop error: {}. Error code: {}'.format(r.text, r.status_code))
 
         return json.loads(r.text)
@@ -83,8 +87,36 @@ class Payop:
 
         :argument data:Invoice - Invoice data
         :returns checkout URL
-        :raises PaymentException - on API error
+        :raises PayopApiException - on API error
         '''
 
         invoice_res = self._create_invoice(data)
         return CHECKOUT_PAGE.format(locale=Language.EN.value, invoice_id=invoice_res.data)
+
+    def parse_callback_data(self, data: dict) -> CallbackResponse:
+        '''
+        Parse and validate IPN data
+
+        :raises PayopValidationException
+        '''
+        try:
+            return CallbackResponse(
+                invoice=CallbackInvoice(
+                    id=data["invoice"]["id"],
+                    txid=data["invoice"]["txid"],
+                    metadata=data["invoice"]["metadata"],
+                ),
+                transaction=CallbackTransaction(
+                    id=data["transaction"]["id"],
+                    state=data["transaction"]["state"],
+                    order=CallbackOrder(id=data["transaction"]["order"]["id"]),
+                    error=CallbackError(
+                        message=data["transaction"]["error"]["message"],
+                        code=data["transaction"]["error"]["code"]
+                    ),
+                )
+            )
+        except TypeError as e:
+            msg = f"Error during Payop callback data parsing: {str(e)}"
+            logger.error(msg)
+            raise PayopValidationException(msg)

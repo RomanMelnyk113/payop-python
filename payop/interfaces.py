@@ -38,3 +38,33 @@ class Invoice:
 class InvoiceResponse:
     data: str
     status: int
+
+
+@dataclass
+class CallbackInvoice:
+    id: str
+    txid: str
+    metadata: Optional[dict] = None
+
+
+@dataclass
+class CallbackError:
+    message: str
+    code: str
+
+@dataclass
+class CallbackOrder:
+    id: str
+
+
+@dataclass
+class CallbackTransaction:
+    id: str
+    state: int
+    order: CallbackOrder
+    error: Optional[CallbackError] = None
+
+@dataclass
+class CallbackResponse:
+    invoice: CallbackInvoice
+    transaction: CallbackTransaction
