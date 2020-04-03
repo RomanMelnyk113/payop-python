@@ -26,14 +26,14 @@ here = path.abspath(path.dirname(__file__))
 #    long_description = f.read()
 
 setup(
-    name='trustpay',
-    version='0.1',
+    name='payop',
+    version='0.0.1',
 
-    description='Basic Trustpay API client',
+    description='Basic Payop API client',
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/RomanMelnyk113/trustpay',
+    url='https://github.com/RomanMelnyk113/payop-python',
 
     # Author details
     author='Roman Melnyk',
@@ -51,10 +51,10 @@ setup(
         'Programming Language :: Python :: 3',
     ],
 
-    keywords='trustpay payment python',
-    packages=['trustpay'],
+    keywords='payop payment python',
+    packages=['payop'],
 
     install_requires=['requests'],
 
-    python_requires='>=3.5',
+    python_requires='>=3.7',
 )

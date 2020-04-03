@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "trustpay-python"
+name = "payop-python"
 version = "0.0.1"
-description = "Trustpay python unofficial package"
+description = "Payop python unofficial package"
 authors = ["Roman Melnyk <roman.melnyk20071992@gmail.com>"]
 
 readme = "README.md"
