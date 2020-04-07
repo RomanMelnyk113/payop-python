@@ -3,12 +3,14 @@ import logging
 from hashlib import sha256
 import json
 from http import HTTPStatus
+from typing import Optional, List
 
 import requests
 
 from . import PayopApiException, Language, PayopValidationException
 from .interfaces import (Invoice, InvoiceResponse, CallbackResponse, CallbackInvoice,
-                         CallbackTransaction, CallbackOrder, CallbackError)
+                         CallbackTransaction, CallbackOrder, CallbackError, RefundBody,
+                         RefundResponse, Transaction)
 
 DEFAULT_BASE_API_URL = 'https://payop.com'
 CHECKOUT_PAGE = "https://payop.com/{locale}/payment/invoice-preprocessing/{invoice_id}"
@@ -39,11 +41,12 @@ class Payop:
     def _send_request(
             self,
             endpoint: str,
-            data: dict,
-    ):
+            data: Optional[dict] = None,
+            method: str = "get"
+    ) -> dict:
         headers = {"Authorization": f"Bearer {self.access_token}"}
-
-        r = requests.post(self._generate_url(endpoint), headers=headers, json=data)
+        method_to_call = getattr(requests, method)
+        r = method_to_call(self._generate_url(endpoint), headers=headers, json=data)
         print(r.text)
         if r.status_code != HTTPStatus.OK:
             raise PayopApiException(
@@ -76,10 +79,26 @@ class Payop:
         if data_to_send["order"]["items"] is None:
             data_to_send["order"]["items"] = []
         # TODO: error handling
-        response = self._send_request(endpoint, data_to_send)
+        response = self._send_request(endpoint, data_to_send, method="post")
         return InvoiceResponse(
             data=response["data"], status=response["status"]
         )
+
+    def get_available_methods(self) -> List[dict]:
+        endpoint = '/v1/instrument-settings/payment-methods/available-for-user'
+        response = self._send_request(endpoint)
+        return response["data"]
+
+    def get_transaction(self, transaction_id: str) -> Transaction:
+        """
+        Fetch transaction:
+
+        :param transaction_id:
+        :return:
+        """
+        endpoint = '/v1/transactions/{id}'
+        response = self._send_request(endpoint.format(id=transaction_id))
+        return Transaction(**response['data'])
 
     def checkout(self, data: Invoice) -> str:
         '''
@@ -92,6 +111,26 @@ class Payop:
 
         invoice_res = self._create_invoice(data)
         return CHECKOUT_PAGE.format(locale=Language.EN.value, invoice_id=invoice_res.data)
+
+    def refund(self, data: RefundBody) -> RefundResponse:
+        '''
+            Refund transaction
+            https://github.com/Payop/payop-api-doc/blob/master/refund.md
+
+            :param data: Refund data
+            :return: InvoiceResponse
+
+            Payop API response
+            Example: {
+                "data": "",
+                "status": 1
+            }
+        '''
+
+        endpoint = '/v1/refunds/create'
+        data_to_send = dataclasses.asdict(data)
+        response = self._send_request(endpoint, data_to_send, method="post")
+        return RefundResponse(status=response.get("status"), data=response.get("data"))
 
     def parse_callback_data(self, data: dict) -> CallbackResponse:
         '''

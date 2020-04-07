@@ -18,3 +18,8 @@ class TransactionStatus(Enum):
     ACCEPTED = 2
     PENDING = 4
     FAILED = 3, 5
+
+
+class RefundType(Enum):
+    FULL = 1
+    PARTIAL = 2
