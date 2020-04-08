@@ -48,7 +48,7 @@ class Payop:
         method_to_call = getattr(requests, method)
         r = method_to_call(self._generate_url(endpoint), headers=headers, json=data)
         print(r.text)
-        if r.status_code != HTTPStatus.OK:
+        if r.status_code not in [HTTPStatus.OK, HTTPStatus.CREATED, HTTPStatus.ACCEPTED]:
             raise PayopApiException(
                 'Payop error: {}. Error code: {}'.format(r.text, r.status_code))
 
